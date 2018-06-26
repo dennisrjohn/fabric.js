@@ -2646,10 +2646,10 @@ fabric.CommonMethods = {
 
   var makeXHR = (function() {
     var factories = [
-      function() { return new fabric.window.XMLHttpRequest(); },
       function() { return new ActiveXObject('Microsoft.XMLHTTP'); },
       function() { return new ActiveXObject('Msxml2.XMLHTTP'); },
-      function() { return new ActiveXObject('Msxml2.XMLHTTP.3.0'); }
+      function() { return new ActiveXObject('Msxml2.XMLHTTP.3.0'); },
+      function() { return new XMLHttpRequest(); }
     ];
     for (var i = factories.length; i--; ) {
       try {
@@ -2676,6 +2676,7 @@ fabric.CommonMethods = {
    * @return {XMLHttpRequest} request
    */
   function request(url, options) {
+
     options || (options = { });
 
     var method = options.method ? options.method.toUpperCase() : 'GET',
@@ -12639,35 +12640,6 @@ fabric.util.object.extend(fabric.StaticCanvas.prototype, /** @lends fabric.Stati
      */
     clipTo:                   null,
 
-
-    /**
-     * When not null, will not allow the width of the object to be smaller than the value
-     * @type Number
-     * @default
-     */
-    minWidth:                null,
-
-    /**
-     * When not null, will not allow the width of the object to be larger than the value
-     * @type Number
-     * @default
-     */
-    maxWidth:                null,
-
-    /**
-     * When not null, will not allow the height of the object to be smaller than the value
-     * @type Number
-     * @default
-     */
-    minHeight:                null,
-
-    /**
-     * When not null, will not allow the height of the object to be larger than the value
-     * @type Number
-     * @default
-     */
-    maxHeight:                null,
-
     /**
      * When `true`, object horizontal movement is locked
      * @type Boolean
@@ -13063,38 +13035,6 @@ fabric.util.object.extend(fabric.StaticCanvas.prototype, /** @lends fabric.Stati
     toDatalessObject: function(propertiesToInclude) {
       // will be overwritten by subclasses
       return this.toObject(propertiesToInclude);
-    },
-
-    /**
-     * Returns the minimum width of the object
-     * @return {Number}
-     */
-    getMinWidth: function() {
-      return this.minWidth ? this.minWidth : Number.NEGATIVE_INFINITY;
-    },
-
-    /**
-     * Returns the maximum width of the object
-     * @return {Number}
-     */
-    getMaxWidth: function() {
-      return this.maxWidth ? this.maxWidth : Number.POSITIVE_INFINITY;
-    },
-
-    /**
-     * Returns the minimum height of the object
-     * @return {Number}
-     */
-    getMinHeight: function() {
-      return this.minHeight ? this.minHeight : Number.NEGATIVE_INFINITY;
-    },
-
-    /**
-     * Returns the maximum height of the object
-     * @return {Number}
-     */
-    getMaxHeight: function() {
-      return this.maxHeight ? this.maxHeight : Number.POSITIVE_INFINITY;
     },
 
     /**
@@ -14051,47 +13991,6 @@ fabric.util.object.extend(fabric.StaticCanvas.prototype, /** @lends fabric.Stati
   fabric.Object.__uid = 0;
 
 })(typeof exports !== 'undefined' ? exports : this);
-
-
-(function() {
-
-  /**
-   * Override _setObjectScale and apply max and min dimensions
-   */
-  var setObjectScaleOverridden = fabric.Canvas.prototype._setObjectScale;
-
-  fabric.Canvas.prototype._setObjectScale = function (localMouse, transform,
-    lockScalingX, lockScalingY, by, lockScalingFlip, _dim) {
-
-    var t = transform.target;
-    if (by === 'x') {
-      var tw = t._getTransformedDimensions().x;
-      var w = t.width * (localMouse.x / tw);
-      if (w >= t.getMinWidth() && w <= t.getMaxWidth()) {
-        t.set('width', w);
-        return true;
-      }
-    }
-    else if (by === 'y') {
-      var th = t._getTransformedDimensions().y;
-      var h = t.height * (localMouse.y / th);
-      if (h >= t.getMinHeight() && h <= t.getMaxHeight()) {
-        t.set('height', h);
-        return true;
-      }
-    }
-    else if (by === 'equally') {
-      var tw = t._getTransformedDimensions().x;
-      var w = t.width * (localMouse.x / tw);
-      var th = t._getTransformedDimensions().y;
-      var h = t.height * (localMouse.y / th);
-      if (w >= t.getMinWidth() && w <= t.getMaxWidth() && h >= t.getMinHeight() && h <= t.getMaxHeight()) {
-        return setObjectScaleOverridden.call(fabric.Canvas.prototype, localMouse, transform,
-          lockScalingX, lockScalingY, by, lockScalingFlip, _dim);
-      }
-    }
-  };
-})();
 
 
 (function() {
