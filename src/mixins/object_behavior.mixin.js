@@ -21,7 +21,7 @@
       var th = t._getTransformedDimensions().y;
       var h = t.height * (localMouse.y / th);
       if (h >= t.getMinHeight() && h <= t.getMaxHeight()) {
-        t.set('height', w);
+        t.set('height', h);
         return true;
       }
     }
