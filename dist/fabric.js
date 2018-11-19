@@ -12639,6 +12639,35 @@ fabric.util.object.extend(fabric.StaticCanvas.prototype, /** @lends fabric.Stati
      */
     clipTo:                   null,
 
+
+    /**
+     * When not null, will not allow the width of the object to be smaller than the value
+     * @type Number
+     * @default
+     */
+    minWidth:                Number.NEGATIVE_INFINITY,
+
+    /**
+     * When not null, will not allow the width of the object to be larger than the value
+     * @type Number
+     * @default
+     */
+    maxWidth:                Number.POSITIVE_INFINITY,
+
+    /**
+     * When not null, will not allow the height of the object to be smaller than the value
+     * @type Number
+     * @default
+     */
+    minHeight:                Number.NEGATIVE_INFINITY,
+
+    /**
+     * When not null, will not allow the height of the object to be larger than the value
+     * @type Number
+     * @default
+     */
+    maxHeight:                Number.POSITIVE_INFINITY,
+
     /**
      * When `true`, object horizontal movement is locked
      * @type Boolean
@@ -13990,6 +14019,47 @@ fabric.util.object.extend(fabric.StaticCanvas.prototype, /** @lends fabric.Stati
   fabric.Object.__uid = 0;
 
 })(typeof exports !== 'undefined' ? exports : this);
+
+
+(function() {
+
+  /**
+   * Override _setObjectScale and apply max and min dimensions
+   */
+  var setObjectScaleOverridden = fabric.Canvas.prototype._setObjectScale;
+
+  fabric.Canvas.prototype._setObjectScale = function (localMouse, transform,
+    lockScalingX, lockScalingY, by, lockScalingFlip, _dim) {
+
+    var t = transform.target;
+    if (by === 'x') {
+      var tw = t._getTransformedDimensions().x;
+      var w = t.width * (localMouse.x / tw);
+      if (w >= t.minWidth && w <= t.maxWidth) {
+        t.set('width', w);
+        return true;
+      }
+    }
+    else if (by === 'y') {
+      var th = t._getTransformedDimensions().y;
+      var h = t.height * (localMouse.y / th);
+      if (h >= t.minHeight && h <= t.maxHeight) {
+        t.set('height', h);
+        return true;
+      }
+    }
+    else if (by === 'equally') {
+      var tw = t._getTransformedDimensions().x;
+      var w = t.width * (localMouse.x / tw);
+      var th = t._getTransformedDimensions().y;
+      var h = t.height * (localMouse.y / th);
+      if (w >= t.minWidth && w <= t.maxWidth && h >= t.minHeight && h <= t.maxHeight) {
+        return setObjectScaleOverridden.call(fabric.Canvas.prototype, localMouse, transform,
+          lockScalingX, lockScalingY, by, lockScalingFlip, _dim);
+      }
+    }
+  };
+})();
 
 
 (function() {
