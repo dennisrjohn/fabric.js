@@ -1209,6 +1209,9 @@
       family.indexOf('\'') > -1 ||
       family.indexOf('"') > -1 || fontIsGeneric
         ? style.fontFamily : '"' + style.fontFamily + '"';
+      if (!fontFamily.includes('NotDef')) {
+        fontFamily = fontFamily + ', NotDef';
+      }
       return [
         // node-canvas needs "weight style", while browsers need "style weight"
         (fabric.isLikelyNode ? style.fontWeight : style.fontStyle),
