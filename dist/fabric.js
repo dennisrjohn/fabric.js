@@ -2646,10 +2646,10 @@ fabric.CommonMethods = {
 
   var makeXHR = (function() {
     var factories = [
+      function() { return new fabric.window.XMLHttpRequest(); },
       function() { return new ActiveXObject('Microsoft.XMLHTTP'); },
       function() { return new ActiveXObject('Msxml2.XMLHTTP'); },
-      function() { return new ActiveXObject('Msxml2.XMLHTTP.3.0'); },
-      function() { return new XMLHttpRequest(); }
+      function() { return new ActiveXObject('Msxml2.XMLHTTP.3.0'); }
     ];
     for (var i = factories.length; i--; ) {
       try {
@@ -2676,7 +2676,6 @@ fabric.CommonMethods = {
    * @return {XMLHttpRequest} request
    */
   function request(url, options) {
-
     options || (options = { });
 
     var method = options.method ? options.method.toUpperCase() : 'GET',
@@ -25080,6 +25079,9 @@ fabric.Image.filters.BaseFilter.fromObject = function(object, callback) {
       family.indexOf('\'') > -1 ||
       family.indexOf('"') > -1 || fontIsGeneric
         ? style.fontFamily : '"' + style.fontFamily + '"';
+      if (!fontFamily.includes('NotDef')) {
+        fontFamily = fontFamily + ', NotDef';
+      }
       return [
         // node-canvas needs "weight style", while browsers need "style weight"
         (fabric.isLikelyNode ? style.fontWeight : style.fontStyle),
