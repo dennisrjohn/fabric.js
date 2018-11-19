@@ -1,7 +1,5 @@
 /* _TO_SVG_START_ */
 (function() {
-  var NUM_FRACTION_DIGITS = fabric.Object.NUM_FRACTION_DIGITS;
-
   function getSvgColorString(prop, value) {
     if (!value) {
       return prop + ': none; ';
@@ -60,23 +58,28 @@
 
     /**
      * Returns styles-string for svg-export
-     * @param {Object} style style properties for the span a boolean to skip shadow filter output
+     * @param {Object} style the object from which to retrieve style properties
      * @param {Boolean} useWhiteSpace a boolean to include an additional attribute in the style.
      * @return {String}
      */
     getSvgSpanStyles: function(style, useWhiteSpace) {
-      var term = '; ',
-          strokeWidth = style.strokeWidth ? 'stroke-width: ' + style.strokeWidth + term : '',
-          fontFamily = style.fontFamily ? 'font-family: ' + style.fontFamily.replace(/"/g, '\'') + term : '',
-          fontSize = style.fontSize ? 'font-size: ' + style.fontSize + term : '',
+      var term = '; ';
+      var fontFamily = style.fontFamily ?
+        'font-family: ' + (((style.fontFamily.indexOf('\'') === -1 && style.fontFamily.indexOf('"') === -1) ?
+          '\'' + style.fontFamily  + '\'' : style.fontFamily)) + term : '';
+      var strokeWidth = style.strokeWidth ? 'stroke-width: ' + style.strokeWidth + term : '',
+          fontFamily = fontFamily,
+          fontSize = style.fontSize ? 'font-size: ' + style.fontSize + 'px' + term : '',
           fontStyle = style.fontStyle ? 'font-style: ' + style.fontStyle + term : '',
           fontWeight = style.fontWeight ? 'font-weight: ' + style.fontWeight + term : '',
           fill = style.fill ? getSvgColorString('fill', style.fill) : '',
           stroke = style.stroke ? getSvgColorString('stroke', style.stroke) : '',
-          textDecoration = this.getSvgTextDecoration(style);
+          textDecoration = this.getSvgTextDecoration(style),
+          deltaY = style.deltaY ? 'baseline-shift: ' + (-style.deltaY) + '; ' : '';
       if (textDecoration) {
         textDecoration = 'text-decoration: ' + textDecoration + term;
       }
+
       return [
         stroke,
         strokeWidth,
@@ -86,10 +89,16 @@
         fontWeight,
         textDecoration,
         fill,
+        deltaY,
         useWhiteSpace ? 'white-space: pre; ' : ''
       ].join('');
     },
 
+    /**
+     * Returns text-decoration property for svg-export
+     * @param {Object} style the object from which to retrieve style properties
+     * @return {String}
+     */
     getSvgTextDecoration: function(style) {
       if ('overline' in style || 'underline' in style || 'linethrough' in style) {
         return (style.overline ? 'overline ' : '') +
@@ -167,6 +176,7 @@
 
     _setSVGBg: function(textBgRects) {
       if (this.backgroundColor) {
+        var NUM_FRACTION_DIGITS = fabric.Object.NUM_FRACTION_DIGITS;
         textBgRects.push(
           '\t\t<rect ',
           this._getFillAttributes(this.backgroundColor),

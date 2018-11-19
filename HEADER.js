@@ -1,10 +1,14 @@
- /*! Fabric.js Copyright 2008-2015, Printio (Juriy Zaytsev, Maxim Chernyak) */
+/*! Fabric.js Copyright 2008-2015, Printio (Juriy Zaytsev, Maxim Chernyak) */
 
-var fabric = fabric || { version: '2.0.0-rc.3' };
+var fabric = fabric || { version: '2.3.3' };
 if (typeof exports !== 'undefined') {
   exports.fabric = fabric;
 }
-
+/* _AMD_START_ */
+else if (typeof define === 'function' && define.amd) {
+  define([], function() { return fabric; });
+}
+/* _AMD_END_ */
 if (typeof document !== 'undefined' && typeof window !== 'undefined') {
   fabric.document = document;
   fabric.window = window;

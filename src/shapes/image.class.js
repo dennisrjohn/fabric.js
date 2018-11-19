@@ -280,6 +280,14 @@
       return object;
     },
 
+    /**
+     * Returns true if an image has crop applied, inspecting values of cropX,cropY,width,hight.
+     * @return {Boolean}
+     */
+    hasCrop: function() {
+      return this.cropX || this.cropY || this.width < this._element.width || this.height < this._element.height;
+    },
+
     /* _TO_SVG_START_ */
     /**
      * Returns SVG representation of an instance
@@ -287,17 +295,27 @@
      * @return {String} svg representation of an instance
      */
     toSVG: function(reviver) {
-      var markup = this._createBaseSVGMarkup(), x = -this.width / 2, y = -this.height / 2;
+      var markup = this._createBaseSVGMarkup(), x = -this.width / 2, y = -this.height / 2, clipPath = '';
+      if (this.hasCrop()) {
+        var clipPathId = fabric.Object.__uid++;
+        markup.push(
+          '<clipPath id="imageCrop_' + clipPathId + '">\n',
+          '\t<rect x="' + x + '" y="' + y + '" width="' + this.width + '" height="' + this.height + '" />\n',
+          '</clipPath>\n'
+        );
+        clipPath = ' clip-path="url(#imageCrop_' + clipPathId + ')" ';
+      }
       markup.push('<g transform="', this.getSvgTransform(), this.getSvgTransformMatrix(), '">\n');
       var imageMarkup = ['\t<image ', this.getSvgId(), 'xlink:href="', this.getSvgSrc(true),
-        '" x="', x, '" y="', y,
+        '" x="', x - this.cropX, '" y="', y - this.cropY,
         '" style="', this.getSvgStyles(),
         // we're essentially moving origin of transformation from top/left corner to the center of the shape
         // by wrapping it in container <g> element with actual transformation, then offsetting object to the top/left
         // so that object's center aligns with container's left/top
-        '" width="', this.width,
-        '" height="', this.height,
-        '"></image>\n'];
+        '" width="', this._element.width || this._element.naturalWidth,
+        '" height="', this._element.height || this._element.height,
+        '"', clipPath,
+        '></image>\n'];
       if (this.paintFirst === 'fill') {
         Array.prototype.push.apply(markup, imageMarkup);
       }
@@ -351,6 +369,7 @@
     setSrc: function(src, callback, options) {
       fabric.util.loadImage(src, function(img) {
         this.setElement(img, options);
+        this._setWidthHeight();
         callback(this);
       }, this, options && options.crossOrigin);
       return this;
@@ -371,6 +390,9 @@
           scaleX = this.scaleX * retinaScaling,
           scaleY = this.scaleY * retinaScaling,
           elementToFilter = this._filteredEl || this._originalElement;
+      if (this.group) {
+        this.set('dirty', true);
+      }
       if (!filter || (scaleX > minimumScale && scaleY > minimumScale)) {
         this._element = elementToFilter;
         this._filterScalingX = 1;
@@ -406,6 +428,9 @@
 
       filters = filters || this.filters || [];
       filters = filters.filter(function(filter) { return filter; });
+      if (this.group) {
+        this.set('dirty', true);
+      }
       if (filters.length === 0) {
         this._element = this._originalElement;
         this._filteredEl = null;
@@ -531,13 +556,13 @@
      * @param {Object} [options] Object with width/height properties
      */
     _setWidthHeight: function(options) {
-      this.width = 'width' in options
+      this.width = options && ('width' in options)
         ? options.width
         : (this.getElement()
           ? this.getElement().width || 0
           : 0);
 
-      this.height = 'height' in options
+      this.height = options && ('height' in options)
         ? options.height
         : (this.getElement()
           ? this.getElement().height || 0
@@ -630,7 +655,8 @@
    * @param {Object} object Object to create an instance from
    * @param {Function} callback Callback to invoke when an image instance is created
    */
-  fabric.Image.fromObject = function(object, callback) {
+  fabric.Image.fromObject = function(_object, callback) {
+    var object = fabric.util.object.clone(_object);
     fabric.util.loadImage(object.src, function(img, error) {
       if (error) {
         callback && callback(null, error);

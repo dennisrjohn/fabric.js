@@ -28,6 +28,12 @@
    * @fires selected
    * @fires deselected
    * @fires modified
+   * @fires modified
+   * @fires moved
+   * @fires scaled
+   * @fires rotated
+   * @fires skewed
+   *
    * @fires rotating
    * @fires scaling
    * @fires moving
@@ -39,6 +45,11 @@
    * @fires mouseout
    * @fires mousewheel
    * @fires mousedblclick
+   *
+   * @fires dragover
+   * @fires dragenter
+   * @fires dragleave
+   * @fires drop
    */
   fabric.Object = fabric.util.createClass(fabric.CommonMethods, /** @lends fabric.Object.prototype */ {
 
@@ -251,6 +262,7 @@
 
     /**
      * Color of object's fill
+     * takes css colors https://www.w3.org/TR/css-color-3/
      * @type String
      * @default
      */
@@ -274,6 +286,7 @@
 
     /**
      * Background color of an object.
+     * takes css colors https://www.w3.org/TR/css-color-3/
      * @type String
      * @default
      */
@@ -289,6 +302,7 @@
 
     /**
      * When defined, an object is rendered via stroke and this property specifies its color
+     * takes css colors https://www.w3.org/TR/css-color-3/
      * @type String
      * @default
      */
@@ -326,7 +340,7 @@
      * @type Number
      * @default
      */
-    strokeMiterLimit:         10,
+    strokeMiterLimit:         4,
 
     /**
      * Shadow object representing shadow of this shape
@@ -498,7 +512,7 @@
     lockScalingFlip:          false,
 
     /**
-     * When `true`, object is not exported in SVG or OBJECT/JSON
+     * When `true`, object is not exported in OBJECT/JSON
      * since 1.6.3
      * @type Boolean
      * @default
@@ -603,6 +617,8 @@
       this._cacheCanvas = fabric.document.createElement('canvas');
       this._cacheContext = this._cacheCanvas.getContext('2d');
       this._updateCacheCanvas();
+      // if canvas gets created, is empty, so dirty.
+      this.dirty = true;
     },
 
     /**
@@ -988,6 +1004,7 @@
       if (this.shouldCache()) {
         if (!this._cacheCanvas) {
           this._createCacheCanvas();
+
         }
         if (this.isCacheDirty()) {
           this.statefullCache && this.saveState({ propertySet: 'cacheProperties' });
@@ -1417,7 +1434,7 @@
      * @param {Number} [options.top] Cropping top offset. Introduced in v1.2.14
      * @param {Number} [options.width] Cropping width. Introduced in v1.2.14
      * @param {Number} [options.height] Cropping height. Introduced in v1.2.14
-     * @param {Boolean} [options.enableRetina] Enable retina scaling for clone image. Introduce in 1.6.4
+     * @param {Boolean} [options.enableRetinaScaling] Enable retina scaling for clone image. Introduce in 1.6.4
      * @return {String} Returns a data: URL containing a representation of the object in the format specified by options.format
      */
     toDataURL: function(options) {
@@ -1429,7 +1446,11 @@
       el.width = boundingRect.width;
       el.height = boundingRect.height;
       fabric.util.wrapElement(el, 'div');
-      var canvas = new fabric.StaticCanvas(el, { enableRetinaScaling: options.enableRetinaScaling });
+      var canvas = new fabric.StaticCanvas(el, {
+        enableRetinaScaling: options.enableRetinaScaling,
+        renderOnAddRemove: false,
+        skipOffscreen: false,
+      });
       // to avoid common confusion https://github.com/kangax/fabric.js/issues/806
       if (options.format === 'jpg') {
         options.format = 'jpeg';
@@ -1449,10 +1470,12 @@
       var originalCanvas = this.canvas;
       canvas.add(this);
       var data = canvas.toDataURL(options);
-
       this.set(origParams).setCoords();
       this.canvas = originalCanvas;
-
+      // canvas.dispose will call image.dispose that will nullify the elements
+      // since this canvas is a simple element for the process, we remove references
+      // to objects in this way in order to avoid object trashing.
+      canvas._objects = [];
       canvas.dispose();
       canvas = null;
 

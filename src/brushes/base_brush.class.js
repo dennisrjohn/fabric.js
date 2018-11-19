@@ -78,9 +78,20 @@ fabric.BaseBrush = fabric.util.createClass(/** @lends fabric.BaseBrush.prototype
     ctx.lineCap = this.strokeLineCap;
     ctx.miterLimit = this.strokeMiterLimit;
     ctx.lineJoin = this.strokeLineJoin;
-    if (this.strokeDashArray && fabric.StaticCanvas.supports('setLineDash')) {
-      ctx.setLineDash(this.strokeDashArray);
+    if (fabric.StaticCanvas.supports('setLineDash')) {
+      ctx.setLineDash(this.strokeDashArray || []);
     }
+  },
+
+  /**
+   * Sets the transformation on given context
+   * @param {RenderingContext2d} ctx context to render on
+   * @private
+   */
+  _saveAndTransform: function(ctx) {
+    var v = this.canvas.viewportTransform;
+    ctx.save();
+    ctx.transform(v[0], v[1], v[2], v[3], v[4], v[5]);
   },
 
   /**

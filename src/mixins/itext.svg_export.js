@@ -1,7 +1,7 @@
 /* _TO_SVG_START_ */
 (function() {
   var toFixed = fabric.util.toFixed,
-      NUM_FRACTION_DIGITS = fabric.Object.NUM_FRACTION_DIGITS;
+      multipleSpacesRegex = /  +/g;
 
   fabric.util.object.extend(fabric.Text.prototype, /** @lends fabric.Text.prototype */ {
 
@@ -87,12 +87,17 @@
      * @private
      */
     _createTextCharSpan: function(_char, styleDecl, left, top) {
-      var styleProps = this.getSvgSpanStyles(styleDecl, _char !== _char.trim()),
-          fillStyles = styleProps ? 'style="' + styleProps + '"' : '';
-
+      var shouldUseWhitespace = _char !== _char.trim() || _char.match(multipleSpacesRegex),
+          styleProps = this.getSvgSpanStyles(styleDecl, shouldUseWhitespace),
+          fillStyles = styleProps ? 'style="' + styleProps + '"' : '',
+          dy = styleDecl.deltaY, dySpan = '',
+          NUM_FRACTION_DIGITS = fabric.Object.NUM_FRACTION_DIGITS;
+      if (dy) {
+        dySpan = ' dy="' + toFixed(dy, NUM_FRACTION_DIGITS) + '" ';
+      }
       return [
         '<tspan x="', toFixed(left, NUM_FRACTION_DIGITS), '" y="',
-        toFixed(top, NUM_FRACTION_DIGITS), '" ',
+        toFixed(top, NUM_FRACTION_DIGITS), '" ', dySpan,
         fillStyles, '>',
         fabric.util.string.escapeXml(_char),
         '</tspan>'
@@ -146,6 +151,7 @@
     },
 
     _pushTextBgRect: function(textBgRects, color, left, top, width, height) {
+      var NUM_FRACTION_DIGITS = fabric.Object.NUM_FRACTION_DIGITS;
       textBgRects.push(
         '\t\t<rect ',
         this._getFillAttributes(color),
