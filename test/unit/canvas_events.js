@@ -5,6 +5,8 @@
 
   QUnit.module('fabric.Canvas events mixin', {
     beforeEach: function() {
+      canvas.cancelRequestedRender();
+      canvas.viewportTransform = [1, 0, 0, 1, 0, 0];
       upperCanvasEl.style.display = '';
       canvas.controlsAboveOverlay = fabric.Canvas.prototype.controlsAboveOverlay;
       canvas.preserveObjectStacking = fabric.Canvas.prototype.preserveObjectStacking;
@@ -17,6 +19,7 @@
       canvas.off();
       canvas.calcOffset();
       upperCanvasEl.style.display = 'none';
+      canvas.cancelRequestedRender();
     }
   });
 
@@ -169,6 +172,66 @@
     canvas.__onMouseUp(e);
   });
 
+  QUnit.test('specific bug #5317 for shift+click and active selection', function(assert) {
+    var greenRect = new fabric.Rect({
+      width: 300,
+      height: 300,
+      left: 0,
+      top: 0,
+      fill: 'green',
+      selectable: false
+    });
+    canvas.add(greenRect);
+
+    // add green, half-transparent circle
+    var redCircle = new fabric.Circle({
+      radius: 40,
+      left: 200,
+      top: 100,
+      fill: 'red',
+      opacity: 0.5
+    });
+    canvas.add(redCircle);
+
+    // add green, half-transparent circle
+    var blueCircle = new fabric.Circle({
+      radius: 40,
+      left: 0,
+      top: 0,
+      fill: 'blue',
+      opacity: 0.5
+    });
+    canvas.add(blueCircle);
+    var e = { clientX: 40, clientY: 40, which: 1, target: canvas.upperCanvasEl };
+    canvas.__onMouseDown(e);
+    assert.equal(canvas._activeObject, blueCircle, 'blue circle is selected with first click');
+    canvas.__onMouseUp(e);
+    var e2 = { clientX: 240, clientY: 140, which: 1, target: canvas.upperCanvasEl, shiftKey: true };
+    canvas.__onMouseDown(e2);
+    var selection = canvas.getActiveObjects();
+    assert.equal(selection[1], blueCircle, 'blue circle is still selected');
+    assert.equal(selection[0], redCircle, 'red circle is selected with shift click');
+    canvas.__onMouseUp(e2);
+    var e3 = { clientX: 140, clientY: 90, which: 1, target: canvas.upperCanvasEl, shiftKey: true };
+    canvas.__onMouseDown(e3);
+    var selection = canvas.getActiveObjects();
+    canvas.on('mouse:down', function(options) {
+      assert.equal(options.target, greenRect, 'green rectangle was the target');
+    });
+    assert.equal(selection[1], blueCircle, 'blue circle is still selected 2');
+    assert.equal(selection[0], redCircle, 'red circle is still selected 2');
+    assert.equal(selection.length, 2, 'no other object have been selected');
+    canvas.__onMouseUp(e3);
+    var e4 = { clientX: 290, clientY: 290, which: 1, target: canvas.upperCanvasEl };
+    canvas.__onMouseDown(e4);
+    var selection = canvas.getActiveObjects();
+    canvas.on('mouse:down', function(options) {
+      assert.equal(options.target, greenRect, 'green rectangle was the target 2');
+    });
+    assert.equal(selection.length, 0, 'no other object have been selected because green rect is unselectable');
+    canvas.__onMouseUp(e4);
+  });
+
   QUnit.test('mouse:up isClick = true', function(assert) {
     var e = { clientX: 30, clientY: 30, which: 1, target: canvas.upperCanvasEl  };
     var isClick = false;
@@ -233,6 +296,39 @@
     assert.equal(opt.target, rect, 'options match model - target');
     assert.equal(opt.transform.action, 'drag', 'options match model - target');
     assert.equal(count2, 1, 'object:moved fired');
+  });
+
+  QUnit.test('drag small object when mousemove + drag, not active', function(assert) {
+    var e = { clientX: 2, clientY: 2, which: 1 };
+    var e1 = { clientX: 4, clientY: 4, which: 1 };
+    var e2 = { clientX: 6, clientY: 6, which: 1 };
+    var rect = new fabric.Rect({ left: 0, top: 0, width: 3, height: 3, strokeWidth: 0 });
+    canvas.add(rect);
+    canvas.__onMouseDown(e);
+    canvas.__onMouseMove(e1);
+    canvas.__onMouseMove(e2);
+    canvas.__onMouseUp(e2);
+    assert.equal(rect.top, 4, 'rect moved by 4 pixels top');
+    assert.equal(rect.left, 4, 'rect moved by 4 pixels left');
+    assert.equal(rect.scaleX, 1, 'rect did not scale Y');
+    assert.equal(rect.scaleY, 1, 'rect did not scale X');
+  });
+
+  QUnit.test('scale small object when mousemove + drag, active', function(assert) {
+    var e = { clientX: 2, clientY: 2, which: 1 };
+    var e1 = { clientX: -4, clientY: -4, which: 1 };
+    var e2 = { clientX: -6, clientY: -6, which: 1 };
+    var rect = new fabric.Rect({ left: 0, top: 0, width: 3, height: 3, strokeWidth: 0 });
+    assert.equal(rect.scaleX, 1, 'rect not scaled X');
+    assert.equal(rect.scaleY, 1, 'rect not scaled Y');
+    canvas.add(rect);
+    canvas.setActiveObject(rect);
+    canvas.__onMouseDown(e);
+    canvas.__onMouseMove(e1);
+    canvas.__onMouseMove(e2);
+    canvas.__onMouseUp(e2);
+    assert.equal(rect.scaleX, 3, 'rect scaled X');
+    assert.equal(rect.scaleY, 3, 'rect scaled Y');
   });
 
   QUnit.test('avoid multiple bindings', function(assert) {
@@ -432,6 +528,7 @@
       fabric.document.dispatchEvent(event);
       assert.equal(counter, 1, 'listener executed once');
       fabric.Canvas.prototype._onMouseUp = originalMouseUp;
+      c.cancelRequestedRender();
       done();
     }, 200);
   });
@@ -452,7 +549,6 @@
     assert.equal(counter, 1, 'listener on window executed once');
     fabric.Canvas.prototype._onResize = originalResize;
   });
-
 
   QUnit.test('actionIsDisabled ', function(assert) {
     assert.ok(typeof fabric.Canvas.prototype.actionIsDisabled === 'function', 'actionIsDisabled is a function');

@@ -26,25 +26,8 @@
     var elImage = _createImageElement();
     elImage.width = IMG_WIDTH;
     elImage.height = IMG_HEIGHT;
-    setSrc(elImage, IMG_SRC, function() {
-      callback(elImage);
-    });
-  }
-
-  function setSrc(img, src, callback) {
-    if (fabric.isLikelyNode) {
-      require('fs').readFile(src, function(err, imgData) {
-        if (err) {
-          throw err;
-        };
-        img.src = imgData;
-        callback && callback();
-      });
-    }
-    else {
-      img.src = src;
-      callback && callback();
-    }
+    elImage.onload = callback;
+    elImage.src = IMG_SRC;
   }
 
   QUnit.module('fabric.Object', {
@@ -52,6 +35,9 @@
       fabric.perfLimitSizeTotal = 2097152;
       fabric.maxCacheSideLimit = 4096;
       fabric.minCacheSideLimit = 256;
+      fabric.devicePixelRatio = 1;
+      canvas.enableRetinaScaling = false;
+      canvas.setZoom(1);
       canvas.clear();
       canvas.backgroundColor = fabric.Canvas.prototype.backgroundColor;
       canvas.calcOffset();
@@ -1017,13 +1003,30 @@
     assert.equal(typeof deserializedObject.clipTo, 'function');
   });
 
-  QUnit.test('getObjectScale', function(assert) {
+  QUnit.test('getTotalObjectScaling with zoom', function(assert) {
+    var object = new fabric.Object({ scaleX: 3, scaleY: 2});
+    canvas.setZoom(3);
+    canvas.add(object);
+    var objectScale = object.getTotalObjectScaling();
+    assert.deepEqual(objectScale, { scaleX: object.scaleX * 3, scaleY: object.scaleY * 3 });
+  });
+
+  QUnit.test('getTotalObjectScaling with retina', function(assert) {
+    var object = new fabric.Object({ scaleX: 3, scaleY: 2});
+    canvas.enableRetinaScaling = true;
+    fabric.devicePixelRatio = 4;
+    canvas.add(object);
+    var objectScale = object.getTotalObjectScaling();
+    assert.deepEqual(objectScale, { scaleX: object.scaleX * 4, scaleY: object.scaleY * 4 });
+  });
+
+  QUnit.test('getObjectScaling', function(assert) {
     var object = new fabric.Object({ scaleX: 3, scaleY: 2});
     var objectScale = object.getObjectScaling();
     assert.deepEqual(objectScale, {scaleX: object.scaleX, scaleY: object.scaleY});
   });
 
-  QUnit.test('getObjectScale in group', function(assert) {
+  QUnit.test('getObjectScaling in group', function(assert) {
     var object = new fabric.Object({ scaleX: 3, scaleY: 2});
     var group = new fabric.Group();
     group.scaleX = 2;
@@ -1273,5 +1276,17 @@
     object.dirty = false;
     object._set('fill', 'blue');
     assert.equal(object.dirty, false, 'dirty is not rised');
+  });
+  QUnit.test('isNotVisible', function(assert) {
+    var object = new fabric.Object({ fill: 'blue', width: 100, height: 100 });
+    assert.equal(object.isNotVisible(), false, 'object is default visilbe');
+    object = new fabric.Object({ fill: 'blue', width: 0, height: 0, strokeWidth: 1 });
+    assert.equal(object.isNotVisible(), false, 'object is visilbe with width and height equal 0, but strokeWidth 1');
+    object = new fabric.Object({ opacity: 0, fill: 'blue' });
+    assert.equal(object.isNotVisible(), true, 'object is not visilbe with opacity 0');
+    object = new fabric.Object({ fill: 'blue', visible: false });
+    assert.equal(object.isNotVisible(), true, 'object is not visilbe with visible false');
+    object = new fabric.Object({ fill: 'blue', width: 0, height: 0, strokeWidth: 0 });
+    assert.equal(object.isNotVisible(), true, 'object is not visilbe with also strokeWidth equal 0');
   });
 })();

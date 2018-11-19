@@ -1,8 +1,5 @@
 language: node_js
 
-services:
-  - docker
-
 node_js:
   - "10"
 
@@ -12,6 +9,8 @@ addons:
     - libgif-dev
     - libpng-dev
     - libpango1.0-dev
+    - libjpeg-dev
+    - librsvg2-dev
 # libcairo2-dev is preinstalled
 stages:
   - Linting and Building
@@ -26,10 +25,15 @@ env:
   global:
     - LAUNCHER=Node
 
+matrix:
+  fast_finish: true
+
 jobs:
   fast_finish: true
   allow_failures:
     - env: LAUNCHER=Node CANFAIL=TRUE
+    - env: LAUNCHER=Firefox CANFAIL=TRUE
+    - env: LAUNCHER=Chrome CANFAIL=TRUE
   include:
     - stage: Linting and Building
       env: STEP=LINT
@@ -47,32 +51,56 @@ jobs:
           packages: # avoid installing packages
     - stage: Unit Tests
       env: LAUNCHER=Chrome
-      install: npm install testem@1.18.4 qunit@2.4.1
+      script: npm run build:fast && testem ci --port 8080 -f testem.json -l $LAUNCHER
+      install: npm install testem@1.18.4 qunit@2.6.1
       addons:
         apt:
           packages: # avoid installing packages
     - stage: Unit Tests
       env: LAUNCHER=Firefox
-      install: npm install testem@1.18.4 qunit@2.4.1
+      script: npm run build:fast && testem ci --port 8080 -f testem.json -l $LAUNCHER
+      install: npm install testem@1.18.4 qunit@2.6.1
       addons:
         apt:
           packages: # avoid installing packages
     - stage: Unit Tests
-      env: LAUNCHER=Node CANFAIL=TRUE
+      env: LAUNCHER=Node
       node_js: "10"
-    - stage: Unit Tests
-      node_js: "9"
     - stage: Unit Tests
       node_js: "8"
     - stage: Unit Tests
       node_js: "6"
     - stage: Unit Tests
       node_js: "4"
-    - stage: Visual Tests
+    - stage: Unit Tests
+      env: CANVAS=canvas-prebuilt
       node_js: "8"
+      cache:
+        directories:
+          - ''
+      install: npm install && npm remove canvas && npm install canvas-prebuilt@^1.6.11
+      addons:
+        apt:
+          packages: # avoid installing packages
+    - stage: Visual Tests
       env: LAUNCHER=Node CANFAIL=TRUE
-      script: npm run test:visual
+      node_js: "8"
+      script: npm run build:fast && npm run test:visual
+    - stage: Visual Tests
+      env: LAUNCHER=Chrome
+      install: npm install testem@1.18.4 qunit@2.6.1
+      script: npm run build:fast && testem ci --port 8080 -f testem-visual.json -l $LAUNCHER
+      addons:
+        apt:
+          packages: # avoid installing packages
+    - stage: Visual Tests
+      env: LAUNCHER=Firefox
+      install: npm install testem@1.18.4 qunit@2.6.1
+      script: npm run build:fast && testem ci --port 8080 -f testem-visual.json -l $LAUNCHER
+      addons:
+        apt:
+          packages: # avoid installing packages
 
-script: 'npm run build:fast && testem ci --port 8080 -f testem.json -l $LAUNCHER'
+script: npm run build:fast && npm run test
 
 dist: trusty

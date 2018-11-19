@@ -133,13 +133,25 @@ fabric.util.object.extend(fabric.IText.prototype, /** @lends fabric.IText.protot
    */
   mouseUpHandler: function(options) {
     this.__isMousedown = false;
-    if (!this.editable ||
+    if (!this.editable || this.group ||
       (options.transform && options.transform.actionPerformed) ||
       (options.e.button && options.e.button !== 1)) {
       return;
     }
 
+    if (this.canvas) {
+      var currentActive = this.canvas._activeObject;
+      if (currentActive && currentActive !== this) {
+        // avoid running this logic when there is an active object
+        // this because is possible with shift click and fast clicks,
+        // to rapidly deselect and reselect this object and trigger an enterEdit
+        return;
+      }
+    }
+
     if (this.__lastSelected && !this.__corner) {
+      this.selected = false;
+      this.__lastSelected = false;
       this.enterEditing(options.e);
       if (this.selectionStart === this.selectionEnd) {
         this.initDelayedCursor(true);
@@ -148,7 +160,9 @@ fabric.util.object.extend(fabric.IText.prototype, /** @lends fabric.IText.protot
         this.renderCursorOrSelection();
       }
     }
-    this.selected = true;
+    else {
+      this.selected = true;
+    }
   },
 
   /**

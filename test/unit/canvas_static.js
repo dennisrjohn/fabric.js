@@ -155,6 +155,7 @@
 
   QUnit.module('fabric.StaticCanvas', {
     beforeEach: function() {
+      fabric.Object.__uid = 0;
       canvas.clear();
       canvas.backgroundColor = fabric.StaticCanvas.prototype.backgroundColor;
       canvas.backgroundImage = fabric.StaticCanvas.prototype.backgroundImage;
@@ -575,13 +576,13 @@
     img.src = dataUrl;
   });
 
-  QUnit.test('toDataURL jpg', function(assert) {
+  QUnit.test('toDataURL jpeg', function(assert) {
     if (!fabric.Canvas.supports('toDataURL')) {
       window.alert('toDataURL is not supported by this environment. Some of the tests can not be run.');
     }
     else {
       try {
-        var dataURL = canvas.toDataURL({ format: 'jpg' });
+        var dataURL = canvas.toDataURL({ format: 'jpeg' });
         assert.equal(dataURL.substring(0, 22), 'data:image/jpeg;base64');
       }
       // node-canvas does not support jpeg data urls
@@ -863,6 +864,36 @@
 
     canvas.toSVG(null, reviver);
     assert.equal(reviverCount, len - 2, 'reviver should not include objects with excludeFromExport');
+    canvas.renderOnAddRemove = true;
+  });
+
+  QUnit.test('toSVG with a clipPath', function(assert) {
+    var canvasClip = new fabric.StaticCanvas(null, { width: 400, height: 400 });
+    canvasClip.clipPath = new fabric.Rect({ width: 200, height: 200 });
+    canvasClip.add(new fabric.Circle({ radius: 200 }));
+    var svg = canvasClip.toSVG();
+    var expectedSVG = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\" width=\"400\" height=\"400\" viewBox=\"0 0 400 400\" xml:space=\"preserve\">\n<desc>Created with Fabric.js ' + fabric.version + '</desc>\n<defs>\n<clipPath id=\"CLIPPATH_0\" >\n\t<rect transform=\"matrix(1 0 0 1 100.5 100.5)\" x=\"-100\" y=\"-100\" rx=\"0\" ry=\"0\" width=\"200\" height=\"200\" />\n</clipPath>\n</defs>\n<g clip-path=\"url(#CLIPPATH_0)\" >\n<g transform=\"matrix(1 0 0 1 200.5 200.5)\"  >\n<circle style=\"stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(0,0,0); fill-rule: nonzero; opacity: 1;\"  cx=\"0\" cy=\"0\" r=\"200\" />\n</g>\n</g>\n</svg>';
+    assert.equal(svg, expectedSVG, 'SVG with clipPath should match');
+  });
+
+  QUnit.test('toSVG with exclude from export background', function(assert) {
+    var image = fabric.document.createElement('img'),
+        imageBG = new fabric.Image(image, {width: 0, height: 0}),
+        imageOL = new fabric.Image(image, {width: 0, height: 0});
+
+    canvas.renderOnAddRemove = false;
+    canvas.backgroundImage = imageBG;
+    canvas.overlayImage = imageOL;
+    var expectedSVG = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\" width=\"600\" height=\"600\" viewBox=\"0 0 600 600\" xml:space=\"preserve\">\n<desc>Created with Fabric.js ' + fabric.version + '</desc>\n<defs>\n</defs>\n<g transform=\"matrix(1 0 0 1 0 0)\"  >\n\t<image style=\"stroke: none; stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(0,0,0); fill-rule: nonzero; opacity: 1;\"  xlink:href=\"\" x=\"0\" y=\"0\" width=\"0\" height=\"0\"></image>\n</g>\n<g transform=\"matrix(1 0 0 1 0 0)\"  >\n\t<image style=\"stroke: none; stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(0,0,0); fill-rule: nonzero; opacity: 1;\"  xlink:href=\"\" x=\"0\" y=\"0\" width=\"0\" height=\"0\"></image>\n</g>\n</svg>';
+    var svg1 = canvas.toSVG();
+    assert.equal(svg1, expectedSVG, 'svg with bg and overlay do not match');
+    imageBG.excludeFromExport = true;
+    imageOL.excludeFromExport = true;
+    var expectedSVG2 = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="600" height="600" viewBox="0 0 600 600" xml:space="preserve">\n<desc>Created with Fabric.js ' + fabric.version + '</desc>\n<defs>\n</defs>\n</svg>';
+    var svg2 = canvas.toSVG();
+    assert.equal(svg2, expectedSVG2, 'svg without bg and overlay do not match');
+    canvas.backgroundImage = null;
+    canvas.overlayImage = null;
     canvas.renderOnAddRemove = true;
   });
 
@@ -1509,9 +1540,22 @@
   QUnit.test('options in setBackgroundImage from URL', function(assert) {
     var done = assert.async();
     canvas.setBackgroundImage(IMG_SRC, function() {
+      assert.equal(canvas.backgroundImage.canvas, canvas, 'canvas is referenced');
       assert.equal(canvas.backgroundImage.left, 50);
       assert.equal(canvas.backgroundImage.originX, 'right');
+      done();
+    }, {
+      left: 50,
+      originX: 'right'
+    });
+  });
 
+  QUnit.test('options in setOverlayImage from URL', function(assert) {
+    var done = assert.async();
+    canvas.setOverlayImage(IMG_SRC, function() {
+      assert.equal(canvas.overlayImage.canvas, canvas, 'canvas is referenced');
+      assert.equal(canvas.overlayImage.left, 50);
+      assert.equal(canvas.overlayImage.originX, 'right');
       done();
     }, {
       left: 50,
@@ -1653,26 +1697,30 @@
     assert.equal(scaling, 1, 'retina is disabled, 1');
   });
 
-  //how to test with an exception?
-  /*QUnit.test('options in setBackgroundImage from invalid URL', function(assert) {
-    var done = assert.async();
-    canvas.backgroundImage = null;
-    canvas.setBackgroundImage(IMG_SRC + '_not_exist', function( ) {
-      assert.equal(canvas.backgroundImage, null);
-      done();
-    }, {
-      left: 50,
-      originX: 'right'
-    });
-  });*/
-
   QUnit.test('options in setBackgroundImage from image instance', function(assert) {
     var done = assert.async();
     createImageObject(function(imageInstance) {
       canvas.setBackgroundImage(imageInstance, function() {
+        assert.equal(canvas.backgroundImage.canvas, canvas, 'canvas get referenced');
         assert.equal(canvas.backgroundImage.left, 100);
         assert.equal(canvas.backgroundImage.originX, 'center');
 
+        done();
+      }, {
+        left: 100,
+        originX: 'center'
+      });
+    });
+  });
+
+  QUnit.test('options in setOverlayImage from image instance', function(assert) {
+    var done = assert.async();
+    createImageObject(function(imageInstance) {
+      canvas.setOverlayImage(imageInstance, function() {
+        assert.equal(canvas.overlayImage, imageInstance);
+        assert.equal(imageInstance.left, 100);
+        assert.equal(imageInstance.originX, 'center');
+        assert.equal(imageInstance.canvas, canvas, 'canvas get referenced');
         done();
       }, {
         left: 100,
@@ -1748,6 +1796,15 @@
     var svg = canvas2.toSVG();
     var expectedSVG = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="300" height="150" viewBox="0 0 300 150" xml:space="preserve">\n<desc>Created with Fabric.js ' + fabric.version + '</desc>\n<defs>\n<pattern id="SVGID_0" x="0" y="0" width="0" height="0">\n<image x="0" y="0" width="0" height="0" xlink:href=""></image>\n</pattern>\n</defs>\n<rect transform="translate(150,75)" x="-150" y="-75" width="300" height="150" fill="url(#SVGID_0)"></rect>\n</svg>';
     assert.equal(svg, expectedSVG, 'svg is as expected');
+  });
+
+  QUnit.test('requestRenderAll and cancelRequestedRender', function(assert) {
+    var canvas2 = new fabric.StaticCanvas();
+    assert.equal(canvas2.isRendering, undefined, 'no redering is in progress');
+    canvas2.requestRenderAll();
+    assert.notEqual(canvas2.isRendering, 0, 'a rendering is scehduled');
+    canvas2.cancelRequestedRender();
+    assert.equal(canvas2.isRendering, 0, 'rendering cancelled');
   });
 
   // QUnit.test('backgroundImage', function(assert) {
