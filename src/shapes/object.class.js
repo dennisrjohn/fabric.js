@@ -448,6 +448,35 @@
      */
     clipTo:                   null,
 
+
+    /**
+     * When not null, will not allow the width of the object to be smaller than the value
+     * @type Number
+     * @default
+     */
+    minWidth:                Number.NEGATIVE_INFINITY,
+
+    /**
+     * When not null, will not allow the width of the object to be larger than the value
+     * @type Number
+     * @default
+     */
+    maxWidth:                Number.POSITIVE_INFINITY,
+
+    /**
+     * When not null, will not allow the height of the object to be smaller than the value
+     * @type Number
+     * @default
+     */
+    minHeight:                Number.NEGATIVE_INFINITY,
+
+    /**
+     * When not null, will not allow the height of the object to be larger than the value
+     * @type Number
+     * @default
+     */
+    maxHeight:                Number.POSITIVE_INFINITY,
+
     /**
      * When `true`, object horizontal movement is locked
      * @type Boolean

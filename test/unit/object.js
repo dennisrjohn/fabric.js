@@ -385,6 +385,34 @@
     assert.equal(cObj.get('angle'), 45);
   });
 
+  QUnit.test('minWidth', function(assert) {
+    var cObj = new fabric.Object();
+    assert.equal(cObj.get('minWidth'), Number.NEGATIVE_INFINITY);
+    cObj.set('minWidth', 20);
+    assert.equal(cObj.get('minWidth'), 20);
+  });
+
+  QUnit.test('maxWidth', function(assert) {
+    var cObj = new fabric.Object();
+    assert.equal(cObj.get('maxWidth'), Number.POSITIVE_INFINITY);
+    cObj.set('maxWidth', 20);
+    assert.equal(cObj.get('maxWidth'), 20);
+  });
+
+  QUnit.test('minHeight', function(assert) {
+    var cObj = new fabric.Object();
+    assert.equal(cObj.get('minHeight'), Number.NEGATIVE_INFINITY);
+    cObj.set('minHeight', 20);
+    assert.equal(cObj.get('minHeight'), 20);
+  });
+
+  QUnit.test('maxHeight', function(assert) {
+    var cObj = new fabric.Object();
+    assert.equal(cObj.get('maxHeight'), Number.POSITIVE_INFINITY);
+    cObj.set('maxHeight', 20);
+    assert.equal(cObj.get('maxHeight'), 20);
+  });
+
   QUnit.test('drawBorders', function(assert) {
     var cObj = new fabric.Object(), canvas = fabric.document.createElement('canvas');
 
