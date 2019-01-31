@@ -1209,8 +1209,8 @@
       family.indexOf('\'') > -1 ||
       family.indexOf('"') > -1 || fontIsGeneric
         ? style.fontFamily : '"' + style.fontFamily + '"';
-      if (!fontFamily.includes('NotDef')) {
-        fontFamily = fontFamily + ', NotDef';
+      if (!fontFamily.includes('NotDef') && !fontFamily.includes('Arial')) {
+        fontFamily = fontFamily + ', Arial, NotDef';
       }
       return [
         // node-canvas needs "weight style", while browsers need "style weight"
