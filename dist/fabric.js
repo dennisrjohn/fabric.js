@@ -25563,8 +25563,8 @@ fabric.Image.filters.BaseFilter.fromObject = function(object, callback) {
       family.indexOf('\'') > -1 ||
       family.indexOf('"') > -1 || fontIsGeneric
         ? style.fontFamily : '"' + style.fontFamily + '"';
-      if (!fontFamily.includes('NotDef') && !fontFamily.includes('Helvetica Neue')) {
-        fontFamily = fontFamily + ', "Helvetica Neue", NotDef';
+      if (!fontFamily.includes('NotDef')) {
+        fontFamily = fontFamily + ', NotDef';
       }
       return [
         // node-canvas needs "weight style", while browsers need "style weight"
