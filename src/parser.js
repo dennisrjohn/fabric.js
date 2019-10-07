@@ -49,6 +49,7 @@
         opacity:              'opacity',
         'clip-path':          'clipPath',
         'clip-rule':          'clipRule',
+        'vector-effect':      'strokeUniform'
       },
 
       colorAttributes = {
@@ -79,6 +80,9 @@
 
     if ((attr === 'fill' || attr === 'stroke') && value === 'none') {
       value = '';
+    }
+    else if (attr === 'vector-effect') {
+      value = value === 'non-scaling-stroke';
     }
     else if (attr === 'strokeDashArray') {
       if (value === 'none') {
@@ -555,12 +559,14 @@
       parsedDim.height = parseUnit(heightAttr);
       return parsedDim;
     }
-
     minX = -parseFloat(viewBoxAttr[1]);
     minY = -parseFloat(viewBoxAttr[2]);
     viewBoxWidth = parseFloat(viewBoxAttr[3]);
     viewBoxHeight = parseFloat(viewBoxAttr[4]);
-
+    parsedDim.minX = minX;
+    parsedDim.minY = minY;
+    parsedDim.viewBoxWidth = viewBoxWidth;
+    parsedDim.viewBoxHeight = viewBoxHeight;
     if (!missingDimAttr) {
       parsedDim.width = parseUnit(widthAttr);
       parsedDim.height = parseUnit(heightAttr);
@@ -719,7 +725,7 @@
       recursivelyParseGradientsXlink(doc, referencedGradient);
     }
     gradientsAttrs.forEach(function(attr) {
-      if (!gradient.hasAttribute(attr)) {
+      if (referencedGradient && !gradient.hasAttribute(attr) && referencedGradient.hasAttribute(attr)) {
         gradient.setAttribute(attr, referencedGradient.getAttribute(attr));
       }
     });
@@ -1041,8 +1047,8 @@
     loadSVGFromString: function(string, callback, reviver, options) {
       string = string.trim();
       var doc;
-      if (typeof DOMParser !== 'undefined') {
-        var parser = new DOMParser();
+      if (typeof fabric.window.DOMParser !== 'undefined') {
+        var parser = new fabric.window.DOMParser();
         if (parser && parser.parseFromString) {
           doc = parser.parseFromString(string, 'text/xml');
         }
