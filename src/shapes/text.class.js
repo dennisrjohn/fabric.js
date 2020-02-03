@@ -1194,7 +1194,7 @@
       }
       // if there is text background color no
       // other shadows should be casted
-      this._removeShadow(ctx);
+      // this._removeShadow(ctx);
     },
 
     /**
