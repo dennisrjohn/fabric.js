@@ -27743,6 +27743,9 @@ fabric.Image.filters.BaseFilter.fromObject = function(object, callback) {
       family.indexOf('\'') > -1 ||
       family.indexOf('"') > -1 || fontIsGeneric
         ? style.fontFamily : '"' + style.fontFamily + '"';
+      if (fontFamily.includes('NotoSansSC') && !fontFamily.includes('NotoSansTC')) {
+        fontFamily = fontFamily + ', NotoSansTC';
+      }
       if (!fontFamily.includes('NotDef')) {
         if (!fontFamily.includes('Arial')) {
           fontFamily = fontFamily + ', Arial';
